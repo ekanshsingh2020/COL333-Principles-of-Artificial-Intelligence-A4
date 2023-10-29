@@ -169,11 +169,7 @@ void check_format()
     	{
     		
       		getline (myfile,line);
-      		
-      		
-      		
-
-            
+      	
             getline (testfile,testline);
             if(testline.compare(line)!=0)
             {
