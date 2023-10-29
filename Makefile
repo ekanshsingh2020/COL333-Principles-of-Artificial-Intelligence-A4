@@ -1,7 +1,7 @@
 # Makefile for C++ files
 
 compile:
-	g++ -std=c++11 -O3 -o code startup_code.cpp
+	g++ -std=c++17 -O3 -o code startup_code.cpp
 
 clean:
 	rm -f code
@@ -15,5 +15,5 @@ all:
 	make run
 
 gdb:
-	g++ -std=c++11 -g -o code startup_code.cpp
+	g++ -std=c++17 -g -Wall -o code startup_code.cpp
 	gdb code
