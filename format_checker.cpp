@@ -171,6 +171,7 @@ void check_format()
       		getline (myfile,line);
       	
             getline (testfile,testline);
+
             if(testline.compare(line)!=0)
             {
                 cout<<"Error Here in line number"<<line_count<<"\n";
@@ -198,7 +199,7 @@ void check_format()
                     testss2>>test_temp;
                     if(test_temp.compare(temp)!=0)
                     {
-                        cout<<"Error Here in line number"<<line_count<<"\n";
+                        cout<<"Error Here in line number "<<line_count<<"\n";
                         exit(0);
                     }
      				ss2>> temp;
@@ -379,7 +380,7 @@ int main()
         for(int j=0;j<cpt1.size();j++)
             score+=fabs(cpt1[j]-cpt2[j]);
     }
-   cout <<"Score is "<<score;
+   cout <<"Score is "<<score << endl;
 
 	//cout<<Alarm.netSize();
 	
