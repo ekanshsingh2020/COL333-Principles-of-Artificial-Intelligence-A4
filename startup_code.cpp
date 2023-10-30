@@ -6,7 +6,7 @@ using namespace std;
 #define N 4
 
 unordered_map<string, int> idx;
-// unordered_map<string, int> n_values;
+unordered_map<string, int> n_values;
 vector<vector<int>> dat;
 
 // Our graph consists of a list of nodes where each node is represented as follows:
@@ -40,20 +40,16 @@ public:
 		num_samples_copy.clear();
 		total_samples_copy.clear();
 
-		// (nvalues+1) * 2^(number of parents * 2) {2 bits for each parent since max number of values can be 4} 
-		// CPT.resize((nvalues+1) * (1 << ((int)Parents.size() * 2)));
-		num_samples.resize((nvalues) * (1 << ((int)Parents.size() * 2)));
-		total_samples.resize(1 << ((int)Parents.size() * 2));
+		num_samples.assign((nvalues) * (1 << (4 * 2 + 1)), 0);
+		total_samples.assign(1 << (4 * 2 + 1), 0);
 
-		num_samples_copy.resize((nvalues) * (1 << ((int)Parents.size() * 2)));
-		total_samples_copy.resize(1 << ((int)Parents.size() * 2));
+		num_samples_copy.assign((nvalues) * (1 << (4 * 2 + 1)), 0);
+		total_samples_copy.assign(1 << (4 * 2 + 1), 0);
 
 		return;
 	}
 
 	string get_name(){
-		cout << "Inside get_name\n";
-		// cout <<  << endl;
 		return Node_Name;
 	}
 
@@ -131,22 +127,15 @@ public:
 	
 	// get the node at nth index
 	list<Graph_Node>::iterator get_nth_node(int n){
-		cout << n << endl;
 		list<Graph_Node>::iterator listIt;
 		int count = 0;
 		for (listIt = Pres_Graph.begin(); listIt != Pres_Graph.end(); listIt++){
 			if (count == n){
-				cout << "returning\n";
-				// cout << listIt->Node_Name << endl;
-				string str = listIt->get_name();
 				return listIt;
 			}
 			count++;
-			cout<<count<<endl;
 		}
 
-		cout << "node not found\n";
-		assert(false);
 		return listIt;
 	}
 
@@ -159,7 +148,6 @@ public:
 				return listIt;
 		}
 
-		cout << "node not found\n";
 		return listIt;
 	}
 
@@ -249,8 +237,8 @@ Network read_network(){
 
 void init(Network &Alarm){
 
-	// for (auto it : Alarm.Pres_Graph)
-	// 	n_values[it.get_name()] = it.get_nvalues();
+	for (auto it : Alarm.Pres_Graph)
+		n_values[it.Node_Name] = it.nvalues;
 
 	int num_nodes = Alarm.netSize();
 
@@ -308,7 +296,7 @@ void init(Network &Alarm){
 						int parent_idx = idx[parent];
 						int par_val = dat[parent_idx][(int)dat[parent_idx].size() - 1];
 						int lsb = (par_val & 1);
-						int msb = ((par_val & 2) >> 1);
+						int msb = ((par_val >> 1) & 1);
 						val += (lsb << ix) + (msb << (ix+1));
 						ix -= 2;
 					}
@@ -318,7 +306,7 @@ void init(Network &Alarm){
 					alarm_pres_graph_iterator_2->total_samples[val]++;
 					
 					int lsb = (index & 1); 
-					int msb = ((index & 2) >> 1);
+					int msb = ((index >> 1) & 1);
 					val += (lsb << ix) + (msb << (ix+1));
 					alarm_pres_graph_iterator_2->num_samples[val]++;
 					alarm_pres_graph_iterator_2++;
@@ -341,6 +329,7 @@ void E_step(Network &Alarm){
 	list<Graph_Node>::iterator alarm_pres_graph_it = Alarm.Pres_Graph.begin();
 	
 	vector<vector<int>> dat_copy;
+	dat_copy.clear();
 
 	// copy dat
 	for(int i_node = 0 ; i_node < num_nodes ; i_node++){
@@ -351,32 +340,33 @@ void E_step(Network &Alarm){
 
 		assert(alarm_pres_graph_it != Alarm.Pres_Graph.end());
 
-		for(int j = 0 ; j < (int)alarm_pres_graph_it->num_samples.size() ; j ++){
-			alarm_pres_graph_it->num_samples_copy[j] = alarm_pres_graph_it->num_samples[j];
-		}
-		for(int j = 0 ; j < (int)alarm_pres_graph_it->total_samples.size() ; j ++){
-			alarm_pres_graph_it->total_samples_copy[j] = alarm_pres_graph_it->total_samples[j];
-		}
+		// for(int j = 0 ; j < (int)alarm_pres_graph_it->num_samples.size() ; j ++){
+		// 	alarm_pres_graph_it->num_samples_copy[j] = alarm_pres_graph_it->num_samples[j];
+		// }
+		// for(int j = 0 ; j < (int)alarm_pres_graph_it->total_samples.size() ; j ++){
+		// 	alarm_pres_graph_it->total_samples_copy[j] = alarm_pres_graph_it->total_samples[j];
+		// }
 
 		// for each value of the node
 		for(int j_dat = 0 ; j_dat < (int)dat_copy[i_node].size() ; j_dat ++){
+
 			if(dat_copy[i_node][j_dat] == -1){
 
 				// I need to estimate this probability given its parents in this column
 				// get dat of all its parents
 				int val = 0;
 				int ix = ((int)(alarm_pres_graph_it->Parents.size()) - 1) * 2;
-
-				for(auto par : alarm_pres_graph_it -> Parents){
+				for(int i_par = 0 ; i_par < (int)alarm_pres_graph_it->Parents.size() ; i_par ++){
+					string par = alarm_pres_graph_it->Parents[i_par];
 					int par_idx = idx[par];
 					int par_val = dat_copy[par_idx][j_dat];
 					int lsb = (par_val & 1);
-					int msb = ((par_val & 2) >> 1);
-					val += (lsb << ix) + (msb << (ix+1));
+					int msb = ((par_val >> 1) & 1);
+					val += ((lsb << ix) + (msb << (ix+1)));
 					ix -= 2;
 				}
-				(alarm_pres_graph_it->total_samples[val])++;
 
+				// alarm_pres_graph_it->total_samples[val]++;
 				// with laplace smoothing
 				int t_samples = alarm_pres_graph_it -> total_samples[val];
 				t_samples += alarm_pres_graph_it -> nvalues;
@@ -391,25 +381,19 @@ void E_step(Network &Alarm){
 				ix = ((int)(alarm_pres_graph_it->Parents.size())) * 2;
 
 				for(int k = 0 ; k < alarm_pres_graph_it->nvalues ; k ++){
-					cout << "nvalues:" << alarm_pres_graph_it->nvalues << endl;
 					int lsb = (k & 1);
-					int msb = ((k & 2) >> 1);
+					int msb = ((k >> 1) & 1);
 					int val1 = val + (lsb << ix) + (msb << (ix+1));
 					int n_samples = alarm_pres_graph_it -> num_samples[val1];
 					n_samples += 1;
 					prob_x[k] = (float)n_samples / (float)t_samples;
-					cout << "nvalues:" << alarm_pres_graph_it->nvalues << endl;
 
 					// markov blanket
 					for(int mb = 0 ; mb < (int)alarm_pres_graph_it->Children.size() ; mb ++){
-						cout << mb << endl;
 						int child = alarm_pres_graph_it->Children[mb];
 						int child_val = dat_copy[child][j_dat];
-						cout << "child_val: " << child_val << endl;
-						cout << "child_size: " << (int)alarm_pres_graph_it->Children.size() << endl;
 						int lsb = (child_val & 1);
-						int msb = ((child_val & 2) >> 1);
-						cout << lsb << " " << msb << endl;
+						int msb = ((child_val >> 1) & 1);
 						// calculate parents val
 						int val_child = 0;
 						auto it_child = Alarm.get_nth_node(child);
@@ -418,7 +402,7 @@ void E_step(Network &Alarm){
 							int parent_idx = idx[parent];
 							int par_val = dat_copy[parent_idx][j_dat];
 							int lsb = (par_val & 1);
-							int msb = ((par_val & 2) >> 1);
+							int msb = ((par_val >> 1) & 1);
 							val_child += (lsb << iy) + (msb << (iy+1));
 							iy -= 2;
 						}
@@ -448,13 +432,32 @@ void E_step(Network &Alarm){
 				}
 				dat_copy[i_node][j_dat] = k_val;
 				int lsb = (k_val & 1);
-				int msb = ((k_val & 2) >> 1);
+				int msb = ((k_val >> 1) & 1);
+				(alarm_pres_graph_it->total_samples[val])++;
 				ix = ((int)(alarm_pres_graph_it->Parents.size())) * 2;
 				val += (lsb << ix) + (msb << (ix+1));
 				(alarm_pres_graph_it->num_samples[val])++;
 			}
 		}
 		alarm_pres_graph_it++;
+	}
+
+	return;
+}
+
+void generate_combination(Network &Alarm, Graph_Node &node, vector<int> &ans, int par_idx, int curr){
+	
+	int num_combinations = 1 << (2 * 4 + 1);
+	if(par_idx >= (int)node.Parents.size()) {
+		ans.push_back(curr);
+		return;
+	}
+
+	for(int i = 0 ; i < n_values[node.Parents[par_idx]] ; i ++){
+		int lsb = (i & 1);
+		int msb = ((i >> 1) & 1);
+		int val = curr + (lsb << (2 * par_idx)) + (msb << (2 * par_idx + 1));
+		generate_combination(Alarm, node, ans, par_idx + 1, val);
 	}
 
 	return;
@@ -501,28 +504,63 @@ void M_step(Network &Alarm){
 					
 		// write all probabilities
 		for(auto node : Alarm.Pres_Graph){
-			myfile << node.get_name() << endl;
-			int num_parents = node.get_Parents().size();
+			myfile << node.Node_Name << endl;
+			int num_parents = node.Parents.size();
+			// int num_parents = 4;
 			// int num_values = node.get_nvalues();
-			int num_combinations = 1 << (2 * num_parents);
-			for(int i = 0 ; i < num_combinations ; i ++){
-				int val = 0;
-				int j = (num_parents - 1) * 2;
-				for(auto par : node.get_Parents()){
-					int par_idx = idx[par];
-					int par_val = i >> j;
-					int lsb = (par_val & 1);
-					int msb = ((par_val & 2) >> 1);
-					val += (lsb << par_idx) + (msb << (par_idx + 1));
-					j -= 2;
+
+			vector<int> combs;
+			combs.clear();
+			generate_combination(Alarm, node, combs, 0, 0);
+
+			for(int i = 0 ; i < (int)combs.size() ; i ++){
+				int val = combs[i];
+				float t_samples = node.total_samples[val];
+				// t_samples += 0.35*node.nvalues;
+				t_samples += 1.0;
+				vector<float> need_to_normalize;
+				for(int k = 0 ; k < node.nvalues ; k++){
+					int lsb = (k & 1);
+					int msb = ((k >> 1) & 1);
+					int val1 = val + (lsb << (2 * num_parents)) + (msb << (2 * num_parents + 1));
+					int n_samples = node.num_samples[val1];
+					n_samples += 1*0.35;
+					float prob = (float)n_samples / (float)t_samples;
+					if(prob > 1.0){
+						cout << n_samples << " " << t_samples << endl;
+					}
+					assert(prob >= 0.0 && prob <= 1.0);
+					need_to_normalize.push_back(prob);
 				}
-				int n_samples = node.num_samples_copy[val];
-				int t_samples = node.total_samples_copy[i];
-				n_samples += 1;
-				t_samples += node.nvalues;
-				float prob = (float)n_samples / (float)t_samples;
-				myfile << prob << " ";
+				float sum = 0.0;
+				for(int k = 0 ; k < node.nvalues ; k ++){
+					sum += need_to_normalize[k];
+				}
+				for(int k = 0 ; k < node.nvalues ; k ++){
+					need_to_normalize[k] /= sum;
+				}
+				for(int k = 0 ; k < node.nvalues ; k ++){
+					myfile << need_to_normalize[k] << " ";
+				}
 			}
+
+			// int num_combinations = 1 << (2 * 4 + 1);
+
+
+			// for(int i = 0 ; i < num_combinations ; i ++){
+			// 	int val = i;
+			// 	int t_samples = node.total_samples[val];
+			// 	t_samples += node.nvalues;
+			// 	for(int k = 0 ; k < node.get_nvalues() ; k++){
+			// 		int lsb = (k & 1);
+			// 		int msb = ((k >> 1) & 1);
+			// 		int val1 = val + (lsb << (2 * num_parents)) + (msb << (2 * num_parents + 1));
+			// 		int n_samples = node.num_samples[val1];
+			// 		n_samples += 1;
+			// 		float prob = (float)n_samples / (float)t_samples;
+			// 		myfile << prob << " ";
+			// 	}
+			// }
 			myfile << ";" << endl;
 		}
 		myfile.close();
@@ -535,6 +573,9 @@ void M_step(Network &Alarm){
 }
 
 int main(){
+
+	// seed for rand()
+	srand(time(NULL));
 
 	// start_time
 	auto start_time = chrono::high_resolution_clock::now();
@@ -553,12 +594,13 @@ int main(){
 	// Initialize all the parameters
 	init(Alarm); // works fine
 
+	M_step(Alarm);
+
 	// do while current time - start_time < 2 mins
 	while (1){
 
 		// E step
 		E_step(Alarm);
-
 		// current_time
 		auto current_time = chrono::high_resolution_clock::now();
 
