@@ -8,6 +8,7 @@ clean:
 
 run:
 	./code
+	./format_checker
 
 all:
 	make clean

@@ -6,6 +6,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <math.h>
+#include <algorithm>
 
 
 using namespace std;
@@ -371,17 +372,27 @@ int main()
     Alarm1=read_network((char*)"solved_alarm.bif");
     Alarm2=read_network((char*)"gold_alarm.bif");
     float score=0;
+    vector<pair<pair<float, float>, float>> diffs;
     for(int i=0;i<Alarm1.netSize();i++)
     {
         list<Graph_Node>::iterator listIt1=Alarm1.get_nth_node(i);
         list<Graph_Node>::iterator listIt2=Alarm2.get_nth_node(i);
         vector<float> cpt1=listIt1->get_CPT();
         vector<float> cpt2=listIt2->get_CPT();
-        for(int j=0;j<cpt1.size();j++)
+        for(int j=0;j<cpt1.size();j++){
             score+=fabs(cpt1[j]-cpt2[j]);
+            diffs.push_back({{fabs(cpt1[j]-cpt2[j]),cpt1[j]},cpt2[j]});
+        }
     }
-   cout <<"Score is "<<score << endl;
+   sort(diffs.begin(),diffs.end());
 
+   // print all errors
+    for(int i=0;i<diffs.size();i++)
+        cout << diffs[i].first.first << " " << diffs[i].first.second << " " << diffs[i].second << endl;
+
+    cout << diffs.size() << endl;
+
+    cout << "Score is " << score << endl;
 	//cout<<Alarm.netSize();
 	
 }

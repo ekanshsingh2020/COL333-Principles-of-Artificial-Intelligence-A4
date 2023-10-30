@@ -3,6 +3,7 @@
 // Format checker just assumes you have Alarm.bif and Solved_Alarm.bif (your file) in current directory
 using namespace std;
 
+#define N 4
 #define smoothing_factor 0.0001
 
 unordered_map<string, int> idx;
@@ -23,6 +24,8 @@ public:
 	vector<int> num_samples; // number of samples for each combination of values of parents
 	vector<int> total_samples;
 
+// public:
+	// Constructor- a node is initialised with its name and its categories
 	Graph_Node(string name, int n, vector<string> vals){
 
 		Node_Name = name;
@@ -33,7 +36,7 @@ public:
 		total_samples.clear();
 
 		num_samples.assign((nvalues) * (1 << (4 * 2 + 1)), 1);
-		total_samples.assign(1 << (4 * 2 + 1), nvalues);
+		total_samples.assign(1 << (4 * 2 + 1), nvalues); //TODO
 
 		return;
 	}
@@ -458,6 +461,10 @@ void generate_combination(Network &Alarm, Graph_Node &node, vector<int> &ans, in
 	return;
 }
 
+// TODO: Smoothing factor change to 0.0035?
+// TODO: maxm instead of random coin toss
+// TODO: Stochastic gradient descent instead of Batch GD
+
 void M_step(Network &Alarm){
 
 	auto alarm_pres_graph_iterator = Alarm.Pres_Graph.begin();
@@ -617,8 +624,6 @@ int main(){
 
 	int time_in_seconds = 15;
 
-	int cnt = 0;
-
 	while (1){
 
 		// E step
@@ -638,11 +643,7 @@ int main(){
 		if (chrono::duration_cast<chrono::seconds>(current_time - start_time).count() > (time_t)(time_in_seconds-10))
 			break;
 
-		cnt++;
-
 	}
-
-	cout << "Number of iterations: " << cnt << endl;
 
 	// write to file
 	write_to_file(Alarm);
